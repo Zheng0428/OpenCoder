@@ -46,7 +46,7 @@ fi
 echo "🌐 Authenticating with Google Cloud..."
 
 # Check for service account key file (for automated authentication)
-SERVICE_ACCOUNT_KEY="/home/tuney.zh/OpenCoder/auto_cc/service-account-key.json"
+SERVICE_ACCOUNT_KEY="service-account-key.json"
 SERVICE_ACCOUNT_NAME="claude-auto-auth"
 
 # Function to create service account
