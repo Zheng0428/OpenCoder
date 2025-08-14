@@ -208,7 +208,7 @@ def print_query_summary(results: Dict, output_jsonl_file: Optional[str] = None, 
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='Process multiple Claude Code queries with individual working directories')
-    parser.add_argument('--output', '-o', type=str, default='/mnt/bn/tiktok-mm-5/aiic/users/tianyu/OpenCoder/data/query_results.jsonl',
+    parser.add_argument('--output', '-o', type=str, default='data/query_results.jsonl',
                        help='Path to JSONL output file to save results')
     parser.add_argument('--input', '-i', type=str, default=None,
                        help='Path to JSONL input file containing queries')
