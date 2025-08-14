@@ -104,30 +104,30 @@ else
     echo "❌ 自动登录脚本 auto_setup_gcloud.sh 不存在，跳过登录设置"
 fi
 
-# 步骤5：启动 Claude Code
+# 步骤5：配置完成
 echo ""
-echo "🎯 步骤5：启动 Claude Code..."
+echo "🎯 步骤5：环境配置完成..."
 
-if [ -f "start_claude.sh" ]; then
-    echo "🚀 使用 Vertex AI 模式启动 Claude Code"
-    bash start_claude.sh
-else
-    echo "❌ 启动脚本 start_claude.sh 不存在"
-    echo "💡 您也可以手动启动 Claude Code:"
+# 环境配置完成，现在可以使用 Claude Code SDK
+PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+if [ -n "$PROJECT_ID" ]; then
+    echo "✅ 环境配置完成！现在您可以："
     echo ""
-    echo "# 设置环境变量"
-    PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
-    if [ -n "$PROJECT_ID" ]; then
-        echo "export CLAUDE_CODE_USE_VERTEX=1"
-        echo "export CLOUD_ML_REGION=us-east5"
-        echo "export ANTHROPIC_VERTEX_PROJECT_ID=$PROJECT_ID"
-        echo ""
-        echo "# 启动 Claude Code"
-        echo "claude"
-        echo ""
-        echo "# 或者一行命令启动:"
-        echo "CLAUDE_CODE_USE_VERTEX=1 CLOUD_ML_REGION=us-east5 ANTHROPIC_VERTEX_PROJECT_ID=$PROJECT_ID claude"
-    else
-        echo "⚠️  未找到项目 ID，请先完成认证步骤"
+    echo "🔧 使用 Claude Code SDK (推荐):"
+    echo "   python cc_sdk.py --test                    # 测试连接"
+    echo "   python cc_sdk.py                           # 运行默认示例"
+    echo "   python cc_sdk.py --help-usage              # 查看更多用法"
+    echo ""
+    echo "🚀 或启动交互式 Claude Code:"
+    if [ -f "start_claude.sh" ]; then
+        echo "   bash start_claude.sh                       # 使用启动脚本"
     fi
+    echo "   claude                                      # 直接启动"
+    echo ""
+    echo "🌐 环境变量已配置:"
+    echo "   CLAUDE_CODE_USE_VERTEX=1"
+    echo "   CLOUD_ML_REGION=us-east5"  
+    echo "   ANTHROPIC_VERTEX_PROJECT_ID=$PROJECT_ID"
+else
+    echo "⚠️  未找到项目 ID，请先完成认证步骤"
 fi

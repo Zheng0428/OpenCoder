@@ -4,6 +4,60 @@ from typing import List, Dict, Optional
 import os
 import json
 import argparse
+import subprocess
+import sys
+
+def setup_vertex_ai_env():
+    """设置 Vertex AI 环境变量，用于 Claude Code SDK"""
+    
+    # 获取 Google Cloud 项目 ID
+    try:
+        result = subprocess.run(['gcloud', 'config', 'get-value', 'project'], 
+                              capture_output=True, text=True, check=True)
+        project_id = result.stdout.strip()
+        
+        if not project_id:
+            print("❌ 未找到 Google Cloud 项目 ID")
+            print("请先运行: bash main_cc.sh")
+            sys.exit(1)
+            
+    except subprocess.CalledProcessError:
+        print("❌ 无法获取项目 ID，请确保 gcloud 已安装并已认证")
+        sys.exit(1)
+    
+    # 设置环境变量
+    os.environ['CLAUDE_CODE_USE_VERTEX'] = '1'
+    os.environ['CLOUD_ML_REGION'] = 'us-east5'
+    os.environ['ANTHROPIC_VERTEX_PROJECT_ID'] = project_id
+    
+    print(f"✅ Vertex AI 环境配置完成:")
+    print(f"   项目 ID: {project_id}")
+    print(f"   区域: us-east5")
+    print(f"   Claude Code SDK 将使用 Vertex AI")
+    
+    return project_id
+
+def check_authentication():
+    """检查 Google Cloud 认证状态"""
+    try:
+        result = subprocess.run(['gcloud', 'auth', 'list', '--filter=status:ACTIVE', 
+                               '--format=value(account)'], 
+                              capture_output=True, text=True, check=True)
+        
+        active_accounts = result.stdout.strip().split('\n')
+        active_accounts = [acc for acc in active_accounts if acc]
+        
+        if not active_accounts:
+            print("❌ Google Cloud 未认证")
+            print("请先运行: bash main_cc.sh")
+            sys.exit(1)
+            
+        print(f"✅ 已认证账号: {active_accounts[0]}")
+        return True
+        
+    except subprocess.CalledProcessError:
+        print("❌ 无法检查认证状态")
+        sys.exit(1)
 
 async def process_multiple_queries(queries: List[Dict[str, str]], output_jsonl: Optional[str] = None) -> Dict[str, List[Dict]]:
     """
@@ -219,6 +273,17 @@ def parse_args():
 async def main():
     args = parse_args()
     
+    print("🔧 Claude Code SDK with Vertex AI")
+    print("=" * 40)
+    
+    # 设置 Vertex AI 环境变量
+    project_id = setup_vertex_ai_env()
+    
+    # 检查认证状态
+    check_authentication()
+    
+    print("=" * 40)
+    
     # Load queries from input file or use default examples
     if args.input:
         queries = load_queries_from_jsonl(args.input)
@@ -226,11 +291,11 @@ async def main():
             print("No valid queries found in input file. Exiting.")
             return None
     else:
-        # Default example queries
+        # Default example queries - 更新为更合适的示例
         queries = [
             {"query": "How does the data layer work?", "working_dir": None},
-            {"query": "请告诉我这个工程是干嘛的", "working_dir": "/mnt/bn/tiktok-mm-5/aiic/users/tianyu/RepoLevel_Synthetic/task2_multiscript"},
-            # {"query": "How are tests organized?", "working_dir": "/path/to/test/project"}
+            {"query": "请告诉我这个工程是干嘛的", "working_dir": "/home/tuney.zh/OpenCoder"},
+            {"query": "What files are in the auto_cc directory?", "working_dir": "/home/tuney.zh/OpenCoder/auto_cc"}
         ]
         print("Using default example queries (use --input to specify custom queries)")
     
@@ -242,6 +307,90 @@ async def main():
     
     return results
 
+async def simple_query_example(query: str, working_dir: Optional[str] = None):
+    """
+    简单的单个查询示例
+    
+    Args:
+        query: 要查询的问题
+        working_dir: 可选的工作目录
+    """
+    print(f"🤔 查询: {query}")
+    if working_dir:
+        print(f"📁 工作目录: {working_dir}")
+    
+    # 设置环境
+    setup_vertex_ai_env()
+    check_authentication()
+    
+    # 切换工作目录
+    original_cwd = None
+    if working_dir and os.path.exists(working_dir):
+        original_cwd = os.getcwd()
+        os.chdir(working_dir)
+    
+    try:
+        options = ClaudeCodeOptions() if working_dir else None
+        
+        async with ClaudeSDKClient(options=options) as client:
+            await client.query(query)
+            
+            async for message in client.receive_messages():
+                if type(message).__name__ == "ResultMessage":
+                    print(f"🤖 回复:")
+                    print("-" * 40)
+                    print(message.result)
+                    print("-" * 40)
+                    print(f"💰 费用: ${message.total_cost_usd:.4f}")
+                    print(f"⏱️  耗时: {message.duration_ms}ms")
+                    print(f"🔄 轮次: {message.num_turns}")
+                    break
+                    
+    finally:
+        if original_cwd:
+            os.chdir(original_cwd)
+
+async def test_connection():
+    """测试 Claude Code SDK 连接"""
+    print("🧪 测试 Claude Code SDK 连接")
+    print("=" * 40)
+    
+    await simple_query_example("Hello! Please respond with 'Connection successful!' to test the SDK.")
+
+# 使用说明
+USAGE_EXAMPLES = """
+使用示例:
+
+1. 运行默认的多查询处理:
+   python cc_sdk.py
+
+2. 使用自定义查询文件:
+   python cc_sdk.py --input queries.jsonl --output results.jsonl
+
+3. 显示详细结果:
+   python cc_sdk.py --show-case
+
+4. 测试连接:
+   python -c "import asyncio; from cc_sdk import test_connection; asyncio.run(test_connection())"
+
+5. 简单查询示例:
+   python -c "import asyncio; from cc_sdk import simple_query_example; asyncio.run(simple_query_example('你好，请介绍一下这个项目', '/home/tuney.zh/OpenCoder'))"
+
+前提条件:
+- 已安装 claude-code-sdk: pip install claude-code-sdk
+- 已完成 Google Cloud 认证: bash main_cc.sh
+- 已设置服务账号密钥
+
+输入文件格式 (JSONL):
+{"query": "How does auth work?", "working_dir": "/path/to/project1"}
+{"query": "Explain the API", "working_dir": "/path/to/project2"}
+"""
+
 # Run as script
 if __name__ == "__main__":
-    asyncio.run(main())
+    if len(sys.argv) > 1 and sys.argv[1] == "--help-usage":
+        print(USAGE_EXAMPLES)
+    elif len(sys.argv) > 1 and sys.argv[1] == "--test":
+        asyncio.run(test_connection())
+    else:
+        asyncio.run(main())
