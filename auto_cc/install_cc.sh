@@ -189,7 +189,3 @@ else
     echo "   ❌ Claude Code installation failed"
     exit 1
 fi
-# =============================================================================
-# Step 6: Source bashrc to apply changes
-# =============================================================================
-source ~/.bashrc

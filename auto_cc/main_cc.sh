@@ -47,8 +47,11 @@ echo ""
 echo "🔐 步骤3：设置 Claude Code 自动登录..."
 
 # 获取 Google 账号和密码参数（可选）
-GOOGLE_ACCOUNT="${1:-}"
-GOOGLE_PASSWORD="${2:-}"
+GOOGLE_ACCOUNT="${1:-'aiic20public@gmail.com'}"
+GOOGLE_PASSWORD="${2:-'aiiccomeon888'}"
+
+echo "GOOGLE_ACCOUNT: $GOOGLE_ACCOUNT"
+echo "GOOGLE_PASSWORD: $GOOGLE_PASSWORD"
 
 if [ -f "auto_setup_cc.sh" ]; then
     if [ -n "$GOOGLE_ACCOUNT" ]; then

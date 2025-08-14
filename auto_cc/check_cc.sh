@@ -3,7 +3,7 @@
 # =============================================================================
 echo ""
 echo "🔍 : Verifying Claude Code installation..."
-
+source ~/.bashrc
 # Check if claude command is available
 if command -v claude &> /dev/null; then
     CLAUDE_VERSION=$(claude --version)
