@@ -44,13 +44,22 @@ fi
 
 # 步骤3：运行安装gcloud脚本
 echo ""
-echo "🔍 步骤3：运行安装gcloud脚本..."
-if [ -f "install_gcloud.sh" ]; then
-    bash install_gcloud.sh
-    echo "✅ 检查脚本执行完成"
+echo "🔍 步骤3：检查并安装 gcloud..."
+
+# 检查 gcloud 是否已安装
+if command -v gcloud &> /dev/null; then
+    echo "✅ gcloud 已经安装，跳过安装步骤"
+    echo "📊 当前 gcloud 版本:"
+    gcloud version --format="value(version.version_string)" | head -1
 else
-    echo "❌ 检查脚本 install_gcloud.sh 不存在"
-    exit 1
+    echo "📦 gcloud 未安装，开始安装..."
+    if [ -f "install_gcloud.sh" ]; then
+        bash install_gcloud.sh
+        echo "✅ gcloud 安装脚本执行完成"
+    else
+        echo "❌ 安装脚本 install_gcloud.sh 不存在"
+        exit 1
+    fi
 fi
 
 # 步骤3：自动登录设置
