@@ -42,6 +42,17 @@ else
     exit 1
 fi
 
+# 步骤3：运行安装gcloud脚本
+echo ""
+echo "🔍 步骤3：运行安装gcloud脚本..."
+if [ -f "install_gcloud.sh" ]; then
+    bash install_gcloud.sh
+    echo "✅ 检查脚本执行完成"
+else
+    echo "❌ 检查脚本 install_gcloud.sh 不存在"
+    exit 1
+fi
+
 # 步骤3：自动登录设置
 echo ""
 echo "🔐 步骤3：设置 Claude Code 自动登录..."
