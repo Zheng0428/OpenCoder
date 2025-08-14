@@ -10,9 +10,10 @@
 # 4. 启动 Claude Code
 # 
 # 用法:
-#   bash main_cc.sh                              # 手动输入 Google 账号和密码
-#   bash main_cc.sh your@gmail.com               # 直接指定 Google 账号，手动输入密码
-#   bash main_cc.sh your@gmail.com your_password # 直接指定 Google 账号和密码
+#   bash main_cc.sh                                               # 手动输入 Google 账号和密码
+#   bash main_cc.sh your@gmail.com                                # 直接指定 Google 账号，手动输入密码
+#   bash main_cc.sh your@gmail.com your_password                  # 直接指定 Google 账号和密码
+#   bash main_cc.sh your@gmail.com your_password your-project-id  # 完全自动化（包含项目 ID）
 # =============================================================================
 
 set -e  # 遇到错误立即退出
@@ -62,23 +63,27 @@ else
     fi
 fi
 
-# 步骤3：自动登录设置
+# 步骤4：自动登录设置
 echo ""
-echo "🔐 步骤3：设置 Claude Code 自动登录..."
+echo "🔐 步骤4：设置 Claude Code 自动登录..."
 
-# 获取 Google 账号和密码参数（可选）
+# 获取 Google 账号、密码和项目 ID 参数（可选）
 GOOGLE_ACCOUNT="${1:-'aiic20public@gmail.com'}"
 GOOGLE_PASSWORD="${2:-'aiiccomeon888'}"
+PROJECT_ID="${3:-'test'}"  # Google Cloud Project ID (optional)
 
 echo "GOOGLE_ACCOUNT: $GOOGLE_ACCOUNT"
-echo "GOOGLE_PASSWORD: $GOOGLE_PASSWORD"
+echo "GOOGLE_PASSWORD: [PROVIDED]"
+if [ -n "$PROJECT_ID" ]; then
+    echo "PROJECT_ID: $PROJECT_ID"
+fi
 
 if [ -f "auto_setup_cc.sh" ]; then
     if [ -n "$GOOGLE_ACCOUNT" ]; then
         echo "📧 使用提供的 Google 账号: $GOOGLE_ACCOUNT"
         if [ -n "$GOOGLE_PASSWORD" ]; then
-            echo "🔑 使用提供的密码进行自动登录"
-            bash auto_setup_cc.sh "$GOOGLE_ACCOUNT" "$GOOGLE_PASSWORD"
+            echo "🔑 将自动创建服务账号进行完全自动化登录"
+            bash auto_setup_cc.sh "$GOOGLE_ACCOUNT" "$GOOGLE_PASSWORD" "$PROJECT_ID"
         else
             bash auto_setup_cc.sh "$GOOGLE_ACCOUNT"
         fi
@@ -88,10 +93,11 @@ if [ -f "auto_setup_cc.sh" ]; then
         if [ -n "$GOOGLE_ACCOUNT" ]; then
             read -s -p "请输入密码 (可选，回车跳过): " GOOGLE_PASSWORD
             echo ""
+            read -p "请输入 Google Cloud Project ID (可选，回车跳过): " PROJECT_ID
             if [ -n "$GOOGLE_PASSWORD" ]; then
-                bash auto_setup_cc.sh "$GOOGLE_ACCOUNT" "$GOOGLE_PASSWORD"
+                bash auto_setup_cc.sh "$GOOGLE_ACCOUNT" "$GOOGLE_PASSWORD" "$PROJECT_ID"
             else
-                bash auto_setup_cc.sh "$GOOGLE_ACCOUNT"
+                bash auto_setup_cc.sh "$GOOGLE_ACCOUNT" "" "$PROJECT_ID"
             fi
         else
             echo "⏭️  跳过自动登录设置"
