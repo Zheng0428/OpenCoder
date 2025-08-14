@@ -30,10 +30,30 @@ def setup_vertex_ai_env():
     os.environ['CLOUD_ML_REGION'] = 'us-east5'
     os.environ['ANTHROPIC_VERTEX_PROJECT_ID'] = project_id
     
+    # 确保 GOOGLE_APPLICATION_CREDENTIALS 设置正确
+    if 'GOOGLE_APPLICATION_CREDENTIALS' not in os.environ:
+        # 尝试找到服务账号密钥文件
+        key_paths = [
+            'gcloud_key/service-account-key.json',
+            'gcloud_key/test.json',
+            os.path.expanduser('~/.config/gcloud/application_default_credentials.json')
+        ]
+        
+        for key_path in key_paths:
+            if os.path.exists(key_path):
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.abspath(key_path)
+                print(f"📁 自动设置 GOOGLE_APPLICATION_CREDENTIALS: {key_path}")
+                break
+        else:
+            print("⚠️  未找到应用程序默认凭据，可能会出现认证问题")
+            print("请确保已运行: bash main_cc.sh")
+    
     print(f"✅ Vertex AI 环境配置完成:")
     print(f"   项目 ID: {project_id}")
     print(f"   区域: us-east5")
     print(f"   Claude Code SDK 将使用 Vertex AI")
+    if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+        print(f"   ADC 路径: {os.environ['GOOGLE_APPLICATION_CREDENTIALS']}")
     
     return project_id
 

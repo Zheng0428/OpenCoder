@@ -39,11 +39,20 @@ echo "🔐 Authenticating with service account..."
 gcloud auth activate-service-account --key-file="$SERVICE_ACCOUNT_KEY"
 
 # Set application default credentials
-export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/$SERVICE_ACCOUNT_KEY"
-echo "📊 Set application default credentials"
+FULL_KEY_PATH="$(realpath "$SERVICE_ACCOUNT_KEY")"
+export GOOGLE_APPLICATION_CREDENTIALS="$FULL_KEY_PATH"
+echo "📊 Set GOOGLE_APPLICATION_CREDENTIALS: $FULL_KEY_PATH"
 
-# Also set application default credentials using gcloud
-gcloud auth application-default set-quota-project --key-file="$SERVICE_ACCOUNT_KEY" 2>/dev/null || true
+# Set application default credentials using gcloud
+echo "🔧 Setting up application default credentials..."
+gcloud auth application-default login --no-launch-browser --quiet 2>/dev/null || {
+    echo "⚠️  Regular ADC setup failed, using service account key directly"
+    # 创建 ADC 文件
+    ADC_PATH="$HOME/.config/gcloud/application_default_credentials.json"
+    mkdir -p "$(dirname "$ADC_PATH")"
+    cp "$SERVICE_ACCOUNT_KEY" "$ADC_PATH"
+    echo "📁 Copied service account key to ADC path: $ADC_PATH"
+}
 
 # Verify authentication
 if gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | grep -q "@"; then
