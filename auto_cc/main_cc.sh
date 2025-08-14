@@ -6,7 +6,7 @@
 # 这个脚本会：
 # 1. 运行安装脚本 install_cc.sh
 # 2. 运行检查脚本 check_cc.sh
-# 3. 设置 Claude Code 自动登录 (使用 auto_setup_cc.sh)
+# 3. 设置 Google Cloud 自动登录 (使用 auto_setup_gcloud.sh)
 # 4. 启动 Claude Code
 # 
 # 用法:
@@ -83,13 +83,13 @@ fi
 
 SERVICE_ACCOUNT_KEY="gcloud_key/${SERVICE_ACCOUNT_KEY}"
 
-if [ -f "auto_setup_cc.sh" ]; then
+if [ -f "auto_setup_gcloud.sh" ]; then
     echo "📝 检查服务账号密钥文件: $SERVICE_ACCOUNT_KEY"
     
     # Check if service account key exists
     if [ -f "$SERVICE_ACCOUNT_KEY" ]; then
         echo "🔑 发现服务账号密钥文件，执行自动登录..."
-        bash auto_setup_cc.sh "$SERVICE_ACCOUNT_KEY"
+        bash auto_setup_gcloud.sh "$SERVICE_ACCOUNT_KEY"
         echo "✅ 登录设置完成"
     else
         echo "⚠️  未找到密钥文件: $SERVICE_ACCOUNT_KEY"
@@ -101,7 +101,7 @@ if [ -f "auto_setup_cc.sh" ]; then
         echo "⏭️  跳过自动登录设置"
     fi
 else
-    echo "❌ 自动登录脚本 auto_setup_cc.sh 不存在，跳过登录设置"
+    echo "❌ 自动登录脚本 auto_setup_gcloud.sh 不存在，跳过登录设置"
 fi
 
 # 步骤5：启动 Claude Code

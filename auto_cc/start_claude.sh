@@ -73,4 +73,4 @@ echo "💡 身份验证通过 Google Cloud 凭据自动处理"
 echo ""
 
 # 启动 Claude Code
-claude
+# claude
