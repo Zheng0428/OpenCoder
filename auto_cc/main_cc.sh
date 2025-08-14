@@ -81,6 +81,8 @@ else
     SERVICE_ACCOUNT_KEY="${KEY_NAME}.json"
 fi
 
+SERVICE_ACCOUNT_KEY="gcloud_key/${SERVICE_ACCOUNT_KEY}"
+
 if [ -f "auto_setup_cc.sh" ]; then
     echo "📝 检查服务账号密钥文件: $SERVICE_ACCOUNT_KEY"
     

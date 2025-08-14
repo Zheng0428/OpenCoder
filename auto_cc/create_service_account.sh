@@ -298,6 +298,8 @@ fi
 echo ""
 echo "🔐 步骤5: 授予权限"
 echo "为服务账号授予必要权限..."
+echo "project_id: $project_id"
+echo "account_email: $account_email"
 
 # 授予 Editor 角色（比 Owner 更安全）
 gcloud projects add-iam-policy-binding "$project_id" \
