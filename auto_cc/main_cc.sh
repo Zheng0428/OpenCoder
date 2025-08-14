@@ -107,3 +107,27 @@ fi
 # 步骤5：启动 Claude Code
 echo ""
 echo "🎯 步骤5：启动 Claude Code..."
+
+if [ -f "start_claude.sh" ]; then
+    echo "🚀 使用 Vertex AI 模式启动 Claude Code"
+    bash start_claude.sh
+else
+    echo "❌ 启动脚本 start_claude.sh 不存在"
+    echo "💡 您也可以手动启动 Claude Code:"
+    echo ""
+    echo "# 设置环境变量"
+    PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+    if [ -n "$PROJECT_ID" ]; then
+        echo "export CLAUDE_CODE_USE_VERTEX=1"
+        echo "export CLOUD_ML_REGION=us-east5"
+        echo "export ANTHROPIC_VERTEX_PROJECT_ID=$PROJECT_ID"
+        echo ""
+        echo "# 启动 Claude Code"
+        echo "claude"
+        echo ""
+        echo "# 或者一行命令启动:"
+        echo "CLAUDE_CODE_USE_VERTEX=1 CLOUD_ML_REGION=us-east5 ANTHROPIC_VERTEX_PROJECT_ID=$PROJECT_ID claude"
+    else
+        echo "⚠️  未找到项目 ID，请先完成认证步骤"
+    fi
+fi
