@@ -1,68 +1,178 @@
 # Google Cloud 自动认证说明
 
-## 问题说明
-Google Cloud CLI (`gcloud`) 不支持直接通过命令行输入密码进行认证，这是出于安全考虑的设计。
+## 概述
+本认证系统使用 Google Cloud 服务账号密钥文件实现完全自动化认证，无需浏览器交互或手动输入密码。
 
-## 自动化认证方案
+## 前提条件
 
-### 方案1：使用服务账号密钥（推荐用于自动化）
+必须先创建服务账号密钥 JSON 文件（可以使用自定义名称）
 
-1. 在 Google Cloud Console 创建服务账号：
-   ```bash
-   # 创建服务账号
-   gcloud iam service-accounts create claude-auto-auth \
-     --display-name="Claude Auto Authentication"
-   
-   # 生成密钥文件
-   gcloud iam service-accounts keys create service-account-key.json \
-     --iam-account=claude-auto-auth@YOUR_PROJECT_ID.iam.gserviceaccount.com
-   ```
+## 创建服务账号密钥
 
-2. 将 `service-account-key.json` 文件放在 `/home/tuney.zh/OpenCoder/auto_cc/` 目录下
+### 方法1：通过 Google Cloud Console（推荐）
 
-3. 脚本会自动检测并使用该密钥文件进行认证
+1. 访问 [Google Cloud Console](https://console.cloud.google.com/)
+2. 选择或创建一个项目
+3. 导航到 "IAM 和管理" > "服务账号"
+4. 点击 "创建服务账号"
+   - 名称：`claude-auto-auth`
+   - 描述：Claude Code Auto Authentication
+5. 授予角色（根据需要选择，建议 Owner 或 Editor）
+6. 创建密钥：
+   - 点击创建的服务账号
+   - 选择 "密钥" 标签
+   - 点击 "添加密钥" > "创建新密钥"
+   - 选择 JSON 格式
+   - 下载密钥文件
+7. 将下载的文件重命名（可选）：
+   - 默认名称：`service-account-key.json`
+   - 自定义名称：任意名称，如 `mykey.json`、`prod-key.json` 等
+8. 将文件放置在 `OpenCoder/auto_cc/` 目录下
 
-### 方案2：使用无浏览器模式
+### 方法2：通过 gcloud CLI
 
-脚本现在使用 `--no-launch-browser` 标志，这会：
-- 不自动打开浏览器
-- 显示一个 URL 链接
-- 你可以手动复制链接到浏览器完成认证
-- 将认证码粘贴回终端
+如果你在其他已认证的机器上：
 
-### 方案3：使用已存在的认证
-
-如果你已经在系统上认证过：
 ```bash
-# 检查当前认证状态
-gcloud auth list
+# 设置项目
+gcloud config set project YOUR_PROJECT_ID
 
-# 如果已认证，脚本会自动跳过认证步骤
+# 创建服务账号
+gcloud iam service-accounts create claude-auto-auth \
+  --display-name="Claude Auto Authentication" \
+  --description="Service account for automated Claude Code authentication"
+
+# 授予权限
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member="serviceAccount:claude-auto-auth@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/owner"
+
+# 生成密钥文件（可以使用自定义名称）
+gcloud iam service-accounts keys create mykey.json \
+  --iam-account=claude-auto-auth@YOUR_PROJECT_ID.iam.gserviceaccount.com
+
+# 将密钥文件复制到目标机器的 OpenCoder/auto_cc/ 目录
 ```
 
 ## 使用方法
 
+### 使用默认密钥文件名
+
 ```bash
-# 使用服务账号（最自动化）
-# 先将 service-account-key.json 放在 auto_cc 目录
-bash main_cc.sh
-
-# 使用无浏览器模式
-bash main_cc.sh your@gmail.com your_password
-# 注意：密码参数现在只用于标识需要自动化，实际认证仍需通过 OAuth
-
-# 交互式认证
-bash main_cc.sh
+cd /home/tuney.zh/OpenCoder/auto_cc
+bash main_cc.sh  # 将查找 service-account-key.json
 ```
 
-## 安全建议
+### 使用自定义密钥文件名
 
-1. **服务账号密钥**：妥善保管，不要提交到 Git
-2. **个人账号**：使用 OAuth 认证更安全
-3. **自动化场景**：优先使用服务账号
+```bash
+# 使用 abc.json 作为密钥文件
+bash main_cc.sh abc
 
-## 相关文件
+# 使用 myproject.json 作为密钥文件
+bash main_cc.sh myproject
 
-- `service-account-key.json`：服务账号密钥文件（需自行创建）
-- `auto_setup_cc.sh`：自动认证脚本
-- `main_cc.sh`：主执行脚本
+# 直接指定完整文件名
+bash main_cc.sh custom-key.json
+```
+
+脚本会自动：
+1. 检测指定的密钥文件（如果未指定则使用默认的 `service-account-key.json`）
+2. 使用服务账号进行认证
+3. 设置应用默认凭据
+4. 完成 Claude Code 配置
+
+## 文件结构
+
+```
+/home/tuney.zh/OpenCoder/auto_cc/
+├── main_cc.sh              # 主执行脚本
+├── auto_setup_cc.sh        # 自动认证脚本
+├── *.json                  # 服务账号密钥文件（需自行创建，名称可自定义）
+│   ├── service-account-key.json  # 默认名称
+│   ├── mykey.json               # 或自定义名称
+│   └── prod-key.json            # 可以有多个密钥文件
+└── README_AUTH.md          # 本文档
+```
+
+## 工作原理
+
+1. `main_cc.sh` 接受可选的密钥文件名参数
+2. 如果未指定参数，使用默认的 `service-account-key.json`
+3. 如果指定了参数（如 `abc`），将查找 `abc.json` 文件
+4. 检查密钥文件是否存在
+5. 调用 `auto_setup_cc.sh` 并传递密钥文件名
+6. `auto_setup_cc.sh` 使用指定的密钥文件进行 gcloud 认证
+7. 设置环境变量 `GOOGLE_APPLICATION_CREDENTIALS`
+8. 验证认证状态
+
+## 安全注意事项
+
+⚠️ **重要安全提示**：
+
+1. **不要将任何 `.json` 密钥文件提交到 Git**
+   - 所有 `*.json` 文件已在 `.gitignore` 中排除
+   - 包含敏感认证信息
+
+2. **妥善保管密钥文件**
+   - 限制文件权限：`chmod 600 *.json`
+   - 定期轮换密钥
+
+3. **最小权限原则**
+   - 只授予服务账号必要的权限
+   - 避免使用 Owner 角色用于生产环境
+
+## 故障排除
+
+### 问题：找不到密钥文件
+
+```
+❌ Error: Service account key file not found: abc.json
+```
+
+**解决方案**：
+1. 检查文件名是否正确
+2. 确认文件在正确的目录下
+3. 按照上述步骤创建并放置密钥文件
+
+### 问题：认证失败
+
+```
+❌ Authentication failed
+```
+
+**解决方案**：
+1. 检查密钥文件是否有效
+2. 确认服务账号有正确的权限
+3. 验证项目 ID 是否正确
+
+### 问题：已有其他认证
+
+如果系统已有其他 gcloud 认证，可以清除后重新认证：
+
+```bash
+gcloud auth revoke --all
+# 使用默认密钥文件
+bash auto_setup_cc.sh
+# 或使用自定义密钥文件
+bash auto_setup_cc.sh mykey.json
+```
+
+### 使用示例
+
+```bash
+# 示例1：使用默认密钥文件
+bash main_cc.sh
+
+# 示例2：使用自定义密钥文件
+bash main_cc.sh production
+# 将查找 production.json
+
+# 示例3：指定完整文件名
+bash main_cc.sh dev-environment.json
+```
+
+## 相关链接
+
+- [Google Cloud 服务账号文档](https://cloud.google.com/iam/docs/service-accounts)
+- [gcloud auth 命令参考](https://cloud.google.com/sdk/gcloud/reference/auth)

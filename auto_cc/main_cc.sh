@@ -10,10 +10,12 @@
 # 4. 启动 Claude Code
 # 
 # 用法:
-#   bash main_cc.sh                                               # 手动输入 Google 账号和密码
-#   bash main_cc.sh your@gmail.com                                # 直接指定 Google 账号，手动输入密码
-#   bash main_cc.sh your@gmail.com your_password                  # 直接指定 Google 账号和密码
-#   bash main_cc.sh your@gmail.com your_password your-project-id  # 完全自动化（包含项目 ID）
+#   bash main_cc.sh              # 使用默认的 service-account-key.json
+#   bash main_cc.sh abc          # 使用自定义的 abc.json
+#   bash main_cc.sh path/to/key  # 使用指定路径的 key.json
+#
+# 前提条件:
+#   必须先创建服务账号密钥 JSON 文件并放在 auto_cc 目录下
 # =============================================================================
 
 set -e  # 遇到错误立即退出
@@ -67,47 +69,39 @@ fi
 echo ""
 echo "🔐 步骤4：设置 Claude Code 自动登录..."
 
-# 获取 Google 账号、密码和项目 ID 参数（可选）
-GOOGLE_ACCOUNT="${1:-'aiic20public@gmail.com'}"
-GOOGLE_PASSWORD="${2:-'aiiccomeon888'}"
-PROJECT_ID="${3:-'test'}"  # Google Cloud Project ID (optional)
+# 获取自定义密钥文件名参数
+KEY_NAME="${1:-service-account-key}"
 
-echo "GOOGLE_ACCOUNT: $GOOGLE_ACCOUNT"
-echo "GOOGLE_PASSWORD: [PROVIDED]"
-if [ -n "$PROJECT_ID" ]; then
-    echo "PROJECT_ID: $PROJECT_ID"
+# 构建完整的密钥文件名
+if [[ "$KEY_NAME" == *.json ]]; then
+    # 如果已经包含 .json 后缀，直接使用
+    SERVICE_ACCOUNT_KEY="$KEY_NAME"
+else
+    # 否则添加 .json 后缀
+    SERVICE_ACCOUNT_KEY="${KEY_NAME}.json"
 fi
 
 if [ -f "auto_setup_cc.sh" ]; then
-    if [ -n "$GOOGLE_ACCOUNT" ]; then
-        echo "📧 使用提供的 Google 账号: $GOOGLE_ACCOUNT"
-        if [ -n "$GOOGLE_PASSWORD" ]; then
-            echo "🔑 将自动创建服务账号进行完全自动化登录"
-            bash auto_setup_cc.sh "$GOOGLE_ACCOUNT" "$GOOGLE_PASSWORD" "$PROJECT_ID"
-        else
-            bash auto_setup_cc.sh "$GOOGLE_ACCOUNT"
-        fi
+    echo "📝 检查服务账号密钥文件: $SERVICE_ACCOUNT_KEY"
+    
+    # Check if service account key exists
+    if [ -f "$SERVICE_ACCOUNT_KEY" ]; then
+        echo "🔑 发现服务账号密钥文件，执行自动登录..."
+        bash auto_setup_cc.sh "$SERVICE_ACCOUNT_KEY"
+        echo "✅ 登录设置完成"
     else
-        echo "⚠️  未提供 Google 账号，请手动输入:"
-        read -p "请输入 Google 账号: " GOOGLE_ACCOUNT
-        if [ -n "$GOOGLE_ACCOUNT" ]; then
-            read -s -p "请输入密码 (可选，回车跳过): " GOOGLE_PASSWORD
-            echo ""
-            read -p "请输入 Google Cloud Project ID (可选，回车跳过): " PROJECT_ID
-            if [ -n "$GOOGLE_PASSWORD" ]; then
-                bash auto_setup_cc.sh "$GOOGLE_ACCOUNT" "$GOOGLE_PASSWORD" "$PROJECT_ID"
-            else
-                bash auto_setup_cc.sh "$GOOGLE_ACCOUNT" "" "$PROJECT_ID"
-            fi
-        else
-            echo "⏭️  跳过自动登录设置"
-        fi
+        echo "⚠️  未找到密钥文件: $SERVICE_ACCOUNT_KEY"
+        echo "📝 请先创建服务账号密钥："
+        echo "   1. 登录 Google Cloud Console"
+        echo "   2. 创建服务账号并下载 JSON 密钥"
+        echo "   3. 将密钥文件命名为: $SERVICE_ACCOUNT_KEY"
+        echo "   4. 放置在当前目录: $(pwd)"
+        echo "⏭️  跳过自动登录设置"
     fi
-    echo "✅ 登录设置完成"
 else
     echo "❌ 自动登录脚本 auto_setup_cc.sh 不存在，跳过登录设置"
 fi
 
-# 步骤4：启动 Claude Code
+# 步骤5：启动 Claude Code
 echo ""
-echo "🎯 步骤4：启动 Claude Code..."
+echo "🎯 步骤5：启动 Claude Code..."

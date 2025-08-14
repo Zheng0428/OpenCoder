@@ -3,143 +3,68 @@
 # =============================================================================
 # Claude Code Auto Login Setup Script
 # =============================================================================
-# This script will automatically set up Claude Code login with Google account
-# Usage:
-#   ./auto_setup_cc.sh <google_account> [password] [project_id]
+# This script will authenticate using a service account key JSON file
+# Usage: bash auto_setup_cc.sh [key_file_name]
+#   - Default: service-account-key.json
+#   - Custom: any .json file name
 # =============================================================================
 
 set -e  # Exit immediately on error
 
 echo "🔐 Starting Claude Code auto login setup..."
 
-# Check if Google Cloud authentication is configured
-if gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | grep -q "@"; then
-    ACTIVE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | head -1)
-    echo "✅ Google Cloud authentication already active: $ACTIVE_ACCOUNT"
-    echo "Skipping login setup"
-    exit 0
-fi
+# Get the service account key file path from parameter or use default
+SERVICE_ACCOUNT_KEY="${1:-service-account-key.json}"
 
-echo "📝 Setting up Google Cloud authentication for Claude Code..."
-
-# Get parameters
-GOOGLE_ACCOUNT="${1:-}"
-GOOGLE_PASSWORD="${2:-}"
-PROJECT_ID="${3:-}"
-
-if [ -z "$GOOGLE_ACCOUNT" ]; then
-    echo "❌ Error: Google account is required"
-    echo "Usage: $0 <google_account> [password]"
+# Check if service account key file exists
+if [ ! -f "$SERVICE_ACCOUNT_KEY" ]; then
+    echo "❌ Error: Service account key file not found: $SERVICE_ACCOUNT_KEY"
+    echo "📝 Please create a service account key file first"
+    echo "   You can create one using Google Cloud Console or gcloud CLI"
+    echo "   Place the JSON file at: $(pwd)/$SERVICE_ACCOUNT_KEY"
     exit 1
 fi
 
-echo "🌐 Using Google account: $GOOGLE_ACCOUNT"
+echo "🔑 Found service account key file: $SERVICE_ACCOUNT_KEY"
 
-# Store credentials for automated login
-if [ -n "$GOOGLE_PASSWORD" ]; then
-    echo "🔑 Password provided for automated login"
-    export GOOGLE_LOGIN_EMAIL="$GOOGLE_ACCOUNT"
-    export GOOGLE_LOGIN_PASSWORD="$GOOGLE_PASSWORD"
+# Check if already authenticated with service account
+if gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | grep -q "iam.gserviceaccount.com"; then
+    ACTIVE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | head -1)
+    echo "✅ Already authenticated with service account: $ACTIVE_ACCOUNT"
+    exit 0
 fi
 
-# Attempt Google Cloud authentication
-echo "🌐 Authenticating with Google Cloud..."
+# Authenticate with service account
+echo "🔐 Authenticating with service account..."
+gcloud auth activate-service-account --key-file="$SERVICE_ACCOUNT_KEY"
 
-# Check for service account key file (for automated authentication)
-SERVICE_ACCOUNT_KEY="service-account-key.json"
-SERVICE_ACCOUNT_NAME="claude-auto-auth"
+# Set application default credentials
+export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/$SERVICE_ACCOUNT_KEY"
+echo "📊 Set application default credentials"
 
-# Function to create service account
-create_service_account() {
-    local project_id="$1"
-    local account_email="${SERVICE_ACCOUNT_NAME}@${project_id}.iam.gserviceaccount.com"
-    
-    echo "🔧 Creating service account for automated authentication..."
-    
-    # First authenticate with the regular account to create service account
-    echo "📝 First, you need to authenticate with your Google account to create the service account..."
-    gcloud auth login "$GOOGLE_ACCOUNT" --no-launch-browser
-    
-    # Set the project
-    if [ -n "$project_id" ]; then
-        echo "📊 Setting project to: $project_id"
-        gcloud config set project "$project_id"
-    else
-        # Get current project or prompt for one
-        current_project=$(gcloud config get-value project 2>/dev/null)
-        if [ -z "$current_project" ]; then
-            echo "❓ No project ID provided. Please enter your Google Cloud project ID:"
-            read -p "Project ID: " project_id
-            gcloud config set project "$project_id"
-        else
-            project_id="$current_project"
-            echo "📊 Using current project: $project_id"
-        fi
-    fi
-    
-    # Check if service account already exists
-    if gcloud iam service-accounts describe "$account_email" &>/dev/null; then
-        echo "✅ Service account already exists: $account_email"
-    else
-        echo "🆕 Creating new service account: $SERVICE_ACCOUNT_NAME"
-        gcloud iam service-accounts create "$SERVICE_ACCOUNT_NAME" \
-            --display-name="Claude Auto Authentication" \
-            --description="Service account for automated Claude Code authentication"
-        
-        # Grant necessary permissions
-        echo "🔐 Granting necessary permissions..."
-        gcloud projects add-iam-policy-binding "$project_id" \
-            --member="serviceAccount:$account_email" \
-            --role="roles/owner" \
-            --quiet
-    fi
-    
-    # Create key file
-    echo "🔑 Generating service account key..."
-    gcloud iam service-accounts keys create "$SERVICE_ACCOUNT_KEY" \
-        --iam-account="$account_email" \
-        --quiet
-    
-    echo "✅ Service account key created: $SERVICE_ACCOUNT_KEY"
-}
-
-if [ -n "$GOOGLE_PASSWORD" ]; then
-    echo "⚠️  Note: Direct password authentication is not supported by Google Cloud CLI"
-    echo "🤖 Setting up automated authentication using service account..."
-    
-    if [ -f "$SERVICE_ACCOUNT_KEY" ]; then
-        echo "🔑 Found existing service account key, using it for authentication..."
-        gcloud auth activate-service-account --key-file="$SERVICE_ACCOUNT_KEY"
-    else
-        echo "📝 Service account key not found. Creating one now..."
-        create_service_account "$PROJECT_ID"
-        
-        # Now authenticate with the service account
-        echo "🔐 Authenticating with service account..."
-        gcloud auth activate-service-account --key-file="$SERVICE_ACCOUNT_KEY"
-    fi
-else
-    echo "⚠️  Starting interactive Google Cloud authentication..."
-    echo "Please use account $GOOGLE_ACCOUNT to complete authentication"
-    
-    # Try browser-less mode first
-    echo "🔗 Using browser-less authentication (copy URL to browser)..."
-    gcloud auth login --no-launch-browser
-fi
-
-# Set up application default credentials if not using service account
-if [ ! -f "$SERVICE_ACCOUNT_KEY" ]; then
-    echo "🔧 Setting up application default credentials..."
-    gcloud auth application-default login --no-launch-browser
-fi
+# Also set application default credentials using gcloud
+gcloud auth application-default set-quota-project --key-file="$SERVICE_ACCOUNT_KEY" 2>/dev/null || true
 
 # Verify authentication
 if gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | grep -q "@"; then
     ACTIVE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | head -1)
-    echo "✅ Google Cloud authentication successful!"
+    echo "✅ Authentication successful!"
     echo "📊 Active account: $ACTIVE_ACCOUNT"
+    
+    # Get project ID from service account
+    PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+    if [ -z "$PROJECT_ID" ]; then
+        # Try to extract project from service account email
+        if [[ "$ACTIVE_ACCOUNT" =~ @([^.]+)\.iam\.gserviceaccount\.com ]]; then
+            PROJECT_ID="${BASH_REMATCH[1]}"
+            echo "📊 Setting project from service account: $PROJECT_ID"
+            gcloud config set project "$PROJECT_ID"
+        fi
+    else
+        echo "📊 Current project: $PROJECT_ID"
+    fi
 else
-    echo "❌ Google Cloud authentication failed"
+    echo "❌ Authentication failed"
     exit 1
 fi
 
