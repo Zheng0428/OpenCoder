@@ -282,7 +282,7 @@ def print_query_summary(results: Dict, output_jsonl_file: Optional[str] = None, 
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='Process multiple Claude Code queries with individual working directories')
-    parser.add_argument('--output', '-o', type=str, default='data/query_results.jsonl',
+    parser.add_argument('--output', '-o', type=str, default='../data/query_results.jsonl',
                        help='Path to JSONL output file to save results')
     parser.add_argument('--input', '-i', type=str, default=None,
                        help='Path to JSONL input file containing queries')
@@ -314,8 +314,8 @@ async def main():
         # Default example queries - 更新为更合适的示例
         queries = [
             {"query": "How does the data layer work?", "working_dir": None},
-            {"query": "请告诉我这个工程是干嘛的", "working_dir": "/home/tuney.zh/OpenCoder"},
-            {"query": "What files are in the auto_cc directory?", "working_dir": "/home/tuney.zh/OpenCoder/auto_cc"}
+            {"query": "请告诉我这个工程是干嘛的", "working_dir": ""},
+            {"query": "What files are in the auto_cc directory?", "working_dir": ""}
         ]
         print("Using default example queries (use --input to specify custom queries)")
     
