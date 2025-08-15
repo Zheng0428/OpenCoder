@@ -54,27 +54,18 @@ gcloud auth application-default login --no-launch-browser --quiet 2>/dev/null ||
     echo "📁 Copied service account key to ADC path: $ADC_PATH"
 }
 
-# Verify authentication
-if gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | grep -q "@"; then
-    ACTIVE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | head -1)
-    echo "✅ Authentication successful!"
-    echo "📊 Active account: $ACTIVE_ACCOUNT"
-    
-    # Get project ID from service account
-    PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
-    if [ -z "$PROJECT_ID" ]; then
-        # Try to extract project from service account email
-        if [[ "$ACTIVE_ACCOUNT" =~ @([^.]+)\.iam\.gserviceaccount\.com ]]; then
-            PROJECT_ID="${BASH_REMATCH[1]}"
-            echo "📊 Setting project from service account: $PROJECT_ID"
-            gcloud config set project "$PROJECT_ID"
-        fi
-    else
-        echo "📊 Current project: $PROJECT_ID"
-    fi
-else
-    echo "❌ Authentication failed"
-    exit 1
-fi
+# 启用必要的 API
+echo ""
+echo "🔧 启用必要的 Google Cloud APIs..."
+
+# 启用 Vertex AI API
+echo "📡 启用 Vertex AI API..."
+gcloud services enable aiplatform.googleapis.com --quiet
+
+# 启用 Cloud Resource Manager API (如果需要)
+echo "📡 启用 Cloud Resource Manager API..."
+gcloud services enable cloudresourcemanager.googleapis.com --quiet
+
+echo "✅ APIs 启用完成（API 生效可能需要几分钟时间）"
 
 echo "🎉 Auto login setup completed!"

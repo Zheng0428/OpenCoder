@@ -23,26 +23,47 @@ set -e  # 遇到错误立即退出
 echo "🚀 开始 Claude Code 完整安装和启动流程..."
 echo "================================================"
 
-# 步骤1：运行安装脚本
+# 步骤1：检查 Claude Code 是否已安装
 echo ""
-echo "📦 步骤1：运行安装脚本..."
-if [ -f "install_cc.sh" ]; then
-    bash install_cc.sh
-    echo "✅ 安装脚本执行完成"
-else
-    echo "❌ 安装脚本 install_cc.sh 不存在"
-    exit 1
-fi
-
-# 步骤2：运行检查脚本
-echo ""
-echo "🔍 步骤2：运行检查脚本..."
+echo "🔍 步骤1：检查 Claude Code 安装状态..."
+CHECK_PASSED=false
 if [ -f "check_cc.sh" ]; then
-    bash check_cc.sh
-    echo "✅ 检查脚本执行完成"
+    if bash check_cc.sh 2>/dev/null; then
+        echo "✅ Claude Code 已安装且工作正常"
+        CHECK_PASSED=true
+    else
+        echo "⚠️  Claude Code 检查失败，需要重新安装"
+        CHECK_PASSED=false
+    fi
 else
     echo "❌ 检查脚本 check_cc.sh 不存在"
     exit 1
+fi
+
+# 步骤2：如果检查失败，运行安装脚本
+if [ "$CHECK_PASSED" = false ]; then
+    echo ""
+    echo "📦 步骤2：运行安装脚本..."
+    if [ -f "install_cc.sh" ]; then
+        bash install_cc.sh
+        echo "✅ 安装脚本执行完成"
+        
+        # 安装后再次检查
+        echo ""
+        echo "🔍 安装后验证..."
+        if bash check_cc.sh; then
+            echo "✅ 安装验证通过"
+        else
+            echo "❌ 安装后验证失败"
+            exit 1
+        fi
+    else
+        echo "❌ 安装脚本 install_cc.sh 不存在"
+        exit 1
+    fi
+else
+    echo ""
+    echo "⏭️  步骤2：跳过安装（已安装）"
 fi
 
 # 步骤3：运行安装gcloud脚本
